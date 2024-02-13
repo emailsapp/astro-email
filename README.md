@@ -2,8 +2,14 @@
 
 Integration for Astro to Generate HTML emails with React (react-email).
 
+## Installation
+
+```sh
+npm i astro-email
+```
+
 ## Usage
-```jsx
+
 ```javascript
 import { defineConfig } from 'astro/config';
 import email from 'astro-email';
@@ -16,5 +22,5 @@ export default defineConfig({
 		}),
 	],
 });
-``
+```
 
