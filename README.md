@@ -1,6 +1,6 @@
 # astro-email
 
-Integration for Astro to Generate HTML emails with React (react-email).
+Integration for Astro to Generate HTML emails with React ([react-email](https://github.com/resend/react-email)).
 
 ## Installation
 
