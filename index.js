@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as vite from 'vite';
+import child_process from 'node:child_process';
 
 /**
  * @param {object} options
@@ -12,9 +13,7 @@ export default function email(options) {
 	return {
 		name: 'email',
 		hooks: {
-			'astro:config:setup': ({ command, updateConfig, injectRoute, addRenderer }) => {
-				const experimentalReactChildren = false;
-
+			'astro:config:setup': ({ command, updateConfig, injectRoute, addRenderer, addDevToolbarApp }) => {
 				addRenderer({
 					name: 'astro-email/react',
 					serverEntrypoint: '@astrojs/react/server.js',
@@ -24,7 +23,7 @@ export default function email(options) {
 					vite: {
 						plugins: [
 							react(),
-							optionsPlugin(!!experimentalReactChildren) // required for @astrojs/react/server.js to work.
+							optionsPlugin(false) // required for @astrojs/react/server.js to work.
 						],
 					},
 					compressHTML: false,
@@ -39,6 +38,8 @@ export default function email(options) {
 						entrypoint: 'astro-email/index.astro',
 					});
 				}
+
+				addDevToolbarApp("astro-email/toolbar.js");
 			},
 			'astro:build:done': ({ dir, pages }) => {
 				if (options.filename) {
@@ -56,6 +57,13 @@ export default function email(options) {
 						);
 					}
 				}
+			},
+			"astro:server:setup": ({ server }) => {
+				server.ws.on("astro-dev-toolbar:astro-email:toggled", (data) => {
+					if(data.state === true) {
+						child_process.exec("astro build")
+					}
+				});
 			},
 		},
 	};
