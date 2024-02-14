@@ -4,112 +4,204 @@ import fs from "node:fs";
 const templates = fs.readdirSync("src/pages");
 
 const LinkIcon = `
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15" height="15" viewBox="0 0 15 15">
-  <defs>
-    <clipPath id="clip-path">
-      <rect id="Rectangle_1687" data-name="Rectangle 1687" width="15" height="15" transform="translate(11726 152)" fill="none"/>
-    </clipPath>
-  </defs>
-  <g id="Mask_Group_3" data-name="Mask Group 3" transform="translate(-11726 -152)" clip-path="url(#clip-path)">
-    <g id="Group_422" data-name="Group 422">
-      <path id="Path_4182" data-name="Path 4182" d="M14.6,14H7.4A2.4,2.4,0,0,1,5,11.6V4.4A2.4,2.4,0,0,1,7.4,2h2.8V3.2H7.4A1.2,1.2,0,0,0,6.2,4.4v7.2a1.2,1.2,0,0,0,1.2,1.2h7.2a1.2,1.2,0,0,0,1.2-1.2V9H17v2.6A2.4,2.4,0,0,1,14.6,14Z" transform="translate(11722 152)"/>
-      <path id="Path_4181" data-name="Path 4181" d="M3.385,9.591V1.927L.963,4.349a.564.564,0,0,1-.8-.8L3.54.176a.564.564,0,0,1,.684-.1h0l.01.006,0,0,.007,0,.006,0,0,0L4.264.1h0a.567.567,0,0,1,.083.069L7.733,3.55a.564.564,0,0,1-.8.8L4.513,1.926V9.591a.564.564,0,1,1-1.128,0Z" transform="translate(11737.298 150.117) rotate(45)"/>
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" style="margin-bottom:-2px;" viewBox="0 0 15 15">
+    <defs>
+      <clipPath id="clip-path">
+        <rect id="Rectangle_1687" data-name="Rectangle 1687" width="15" height="15" transform="translate(11726 152)" fill="none"/>
+      </clipPath>
+    </defs>
+    <g id="Mask_Group_3" data-name="Mask Group 3" transform="translate(-11726 -152)" clip-path="url(#clip-path)">
+      <g id="Group_422" data-name="Group 422" fill="currentColor">
+        <path id="Path_4182" data-name="Path 4182" d="M14.6,14H7.4A2.4,2.4,0,0,1,5,11.6V4.4A2.4,2.4,0,0,1,7.4,2h2.8V3.2H7.4A1.2,1.2,0,0,0,6.2,4.4v7.2a1.2,1.2,0,0,0,1.2,1.2h7.2a1.2,1.2,0,0,0,1.2-1.2V9H17v2.6A2.4,2.4,0,0,1,14.6,14Z" transform="translate(11722 152)"/>
+        <path id="Path_4181" data-name="Path 4181" d="M3.385,9.591V1.927L.963,4.349a.564.564,0,0,1-.8-.8L3.54.176a.564.564,0,0,1,.684-.1h0l.01.006,0,0,.007,0,.006,0,0,0L4.264.1h0a.567.567,0,0,1,.083.069L7.733,3.55a.564.564,0,0,1-.8.8L4.513,1.926V9.591a.564.564,0,1,1-1.128,0Z" transform="translate(11737.298 150.117) rotate(45)"/>
+      </g>
     </g>
-  </g>
-</svg>
+  </svg>
 `;
 ---
 
-<div class="layout">
-  <div class="sidebar">
-    <h1>Templates</h1>
+<html>
+  <head>
+    <title>Astro Email</title>
 
-    {
-      templates.map((template) => {
-        const path = template.replace(".astro", "");
-        return (
-          <a href={path}>
-            <div class="template-link">
-              <span>{path}</span>
-              <span set:html={LinkIcon} />
-            </div>
-          </a>
-        );
-      })
-    }
-  </div>
+    <Fragment
+      set:html={`
+        <script id="data" type="application/json">${JSON.stringify(
+          {
+            pages: templates,
+          },
+          null,
+          "  "
+        )}</script>
+      `}
+    />
+  </head>
 
-  <div class="preview">
-    {
-      templates.map((template) => {
-        const path = template.replace(".astro", "");
-        return <iframe width="640px" src={`/${path}`} />;
-      })
-    }
-  </div>
-</div>
+  <body>
+    <div class="layout">
+      <div class="sidebar">
+        <h1>Templates</h1>
+        {
+          templates.map((template) => {
+            const path = template.replace(".astro", "");
+            return (
+              <button onclick={`openTemplate("${path}")`}>
+                <span>{path}</span>
+                <a target="_blank" href={path} class="template-link">
+                  <span set:html={LinkIcon} />
+                </a>
+              </button>
+            );
+          })
+        }
+      </div>
 
-<style>
-  body {
-    font-family: sans-serif, Arial;
-    height: 100vh;
-    margin: 0;
-    overscroll-behavior: none;
-    overflow: hidden;
-  }
+      <div class="preview">
+        <iframe width="640px"></iframe>
 
-  iframe {
-    border: none;
-    height: 100%;
-    flex: none;
-  }
+        <script>
+          const dataString = document.querySelector("#data")?.innerHTML;
+          if (!dataString) throw new Error("No data found");
 
-  h1 {
-    font-size: 18px;
-  }
+          const data = JSON.parse(dataString);
+          const iframe = document.querySelector("iframe");
+          if (!iframe) throw new Error("No iframe found");
 
-  .preview {
-    display: flex;
-  }
+          const template = location.hash.substring(1);
+          if (template) {
+            iframe.src = `/${template}`;
+          } else {
+            const first = data.pages[0].replace(".astro", "");
+            iframe.src = `/${first}`;
+          }
 
-  .layout {
-    height: 100%;
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    grid-template-rows: 1fr;
-    gap: 1rem;
-  }
+          window.openTemplate = (template) => {
+            location.hash = `${template}`;
+          };
 
-  .sidebar {
-    height: 100%;
-    background: #eee;
-    padding: 1rem;
-    box-sizing: border-box;
-  }
+          window.addEventListener("hashchange", () => {
+            const template = location.hash.substring(1);
+            iframe.src = `/${template}`;
+          });
+        </script>
+      </div>
+    </div>
 
-  a[href] {
-    color: inherit;
-    text-decoration: none;
-  }
+    <style>
+      body {
+        font-family: sans-serif, Arial;
+        height: 100vh;
+        margin: 0;
+        overscroll-behavior: none;
+        overflow: hidden;
+        font-size: 1rem;
+      }
 
-  .template-link {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    text-transform: capitalize;
-    transition: all 0.2s;
-  }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: hsl(258, 7%, 10%);
+          color: #fff;
+        }
+      }
 
-  .template-link:hover {
-    background: #fff;
-    box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.025);
-  }
+      iframe {
+        border: none;
+        height: 100%;
+        max-width: 100%;
+        flex: none;
+      }
 
-  .template-link:active {
-    transition: none;
-    box-shadow: none;
-  }
-</style>
+      h1 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+      }
+
+      .preview {
+        display: flex;
+        margin: 0 20px;
+      }
+
+      .layout {
+        height: 100%;
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        grid-template-rows: 1fr;
+      }
+
+      .sidebar {
+        margin: 8px;
+        border-radius: 8px;
+        background: #eee;
+        padding: 1rem 0.75rem;
+        box-sizing: border-box;
+        border-right: 1px solid #e0e0e0;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .sidebar {
+          background-color: hsl(258, 4%, 14%);
+          border-right: 1px solid #000000;
+        }
+      }
+
+      a[href] {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        appearance: none;
+        width: 100%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px 4px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        text-transform: capitalize;
+        transition: all 0.2s;
+      }
+
+      .template-link {
+        padding: 8px 10px;
+        border-radius: 8px;
+        text-transform: capitalize;
+        transition: all 0.2s;
+      }
+
+      .template-link:hover {
+        background: #8282823e;
+      }
+
+      button:hover {
+        background: #fff;
+        box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      button:active {
+        transition: none;
+        box-shadow: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        button {
+          border: 1px solid #4b4b4b;
+        }
+
+        button:hover {
+          background: #3f3f3f;
+        }
+      }
+
+      .preview {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </body>
+</html>
