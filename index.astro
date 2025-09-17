@@ -139,23 +139,27 @@ const LinkIcon = `
           if (!iframe) throw new Error("No iframe found");
 
           let fixedWidth = undefined;
+          let fixedHeight = undefined;
 
-          function updateWidth(width?: number) {
+          function updateFormat(width?: number, height?: number) {
             fixedWidth = width;
+            fixedHeight = height;
             width = fixedWidth || iframe?.offsetWidth || 0;
+            height = fixedHeight || iframe?.offsetHeight || 0;
 
             const display = document.querySelector("#display-width");
             if(display) {
-              display.innerHTML = `${width}px`;
+              display.innerHTML = `${width}px x ${height}px`;
             }
 
             if(iframe) {
-              iframe.width = `${width}px`;
+              iframe.width = `${width}`;
+              iframe.height = `${height}`;
             }
           }
 
-          window.addEventListener("resize", () => updateWidth());
-          updateWidth();
+          window.addEventListener("resize", () => updateFormat());
+          updateFormat();
 
           function showTemplate(name: string) {
             if(!iframe) return;
@@ -166,7 +170,7 @@ const LinkIcon = `
 
             console.debug(name, config)
 
-            updateWidth(config.width);
+            updateFormat(config.width, config.height);
 
             iframe.src = `/${name}`;
           }
@@ -211,7 +215,7 @@ const LinkIcon = `
 
       iframe {
         border: none;
-        height: 100%;
+        max-height: 100%;
         max-width: 100%;
         flex: none;
       }
