@@ -41,8 +41,6 @@ async function findTemplates(
 			) {
 				const staticPaths = await exprts.getStaticPaths();
 
-				console.log(staticPaths);
-
 				for (const pathData of staticPaths) {
 					let pageName = templateName;
 					for (const key in pathData.params) {
