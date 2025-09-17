@@ -138,11 +138,19 @@ const LinkIcon = `
           const iframe = document.querySelector("iframe");
           if (!iframe) throw new Error("No iframe found");
 
+          let fixedWidth = undefined;
+
           function updateWidth(width?: number) {
-            width = width || iframe?.offsetWidth || 0;
+            fixedWidth = width;
+            width = fixedWidth || iframe?.offsetWidth || 0;
+
             const display = document.querySelector("#display-width");
             if(display) {
               display.innerHTML = `${width}px`;
+            }
+
+            if(iframe) {
+              iframe.width = `${width}px`;
             }
           }
 
