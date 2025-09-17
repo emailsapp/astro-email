@@ -32,20 +32,33 @@ async function findTemplates(
 				);
 				results.push(...subResults);
 			} else {
-				const exprts = await import(`${itemPath}?raw`);
-				const frontMatterMatch = exprts.default?.match(
+				const astroPageRaw = await import(`${itemPath}?raw`);
+				const frontMatterMatch = astroPageRaw.default?.match(
 					/^---\s*([\s\S]*?)\s*---/,
 				);
 
-				let config = {};
+				// Extract only export statements from frontmatter
+				let exportStatements = "";
+				if (frontMatterMatch) {
+					const frontMatter = frontMatterMatch[1];
+					const exportMatches = frontMatter.match(
+						/export\s+[\s\S]*?(?=export\s+|$)/g,
+					);
+					if (exportMatches) {
+						exportStatements = exportMatches.join("\n");
+					}
+				}
+
+				const frontMatterToProcess = exportStatements || "";
+
+				let exprts = {};
 
 				// TODO: This limits us to not use relative file imports. Why cant we import astro file here at build time.
 				if (frontMatterMatch) {
-					const frontMatter = frontMatterMatch[1].trim();
 					const frontMatterModule = await import(
-						`data:text/javascript,${encodeURIComponent(frontMatter)}`
+						`data:text/javascript,${encodeURIComponent(frontMatterToProcess)}`
 					);
-					config = frontMatterModule.config;
+					exprts = frontMatterModule;
 				}
 
 				const templateName = (
@@ -67,14 +80,14 @@ async function findTemplates(
 
 						results.push({
 							name: pageName,
-							config: config,
+							config: exprts.config,
 							params: pathData.params,
 						});
 					}
 				} else {
 					results.push({
 						name: templateName,
-						config: config,
+						config: exprts.config,
 					});
 				}
 			}
