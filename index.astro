@@ -2,6 +2,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+let failed = false;
+
 async function findTemplates(
 	basePath: string,
 	relativePath: string = "",
@@ -20,47 +22,65 @@ async function findTemplates(
 		const itemPath = path.resolve(fullPath, item);
 		const stat = fs.statSync(itemPath);
 
-		if (stat.isDirectory()) {
-			const subResults = await findTemplates(
-				basePath,
-				path.join(relativePath, item),
-				currentDepth + 1,
-				maxDepth,
-			);
-			results.push(...subResults);
-		} else {
-			const exprts = await import(itemPath);
-			const templateName = (
-				relativePath ? path.join(relativePath, item) : item
-			).replace(".astro", "");
+		try {
+			if (stat.isDirectory()) {
+				const subResults = await findTemplates(
+					basePath,
+					path.join(relativePath, item),
+					currentDepth + 1,
+					maxDepth,
+				);
+				results.push(...subResults);
+			} else {
+				const exprts = await import(`${itemPath}?raw`);
+				const frontMatterMatch = exprts.default?.match(
+					/^---\s*([\s\S]*?)\s*---/,
+				);
 
-			// Check if getStaticPaths exists and generate multiple pages if so
-			if (
-				exprts.getStaticPaths &&
-				typeof exprts.getStaticPaths === "function"
-			) {
-				const staticPaths = await exprts.getStaticPaths();
+				let config = {};
 
-				for (const pathData of staticPaths) {
-					let pageName = templateName;
-					for (const key in pathData.params) {
-						pageName = pageName.replace(`[${key}]`, pathData.params[key]);
+				// TODO: This limits us to not use relative file imports. Why cant we import astro file here at build time.
+				if (frontMatterMatch) {
+					const frontMatter = frontMatterMatch[1].trim();
+					const frontMatterModule = await import(
+						`data:text/javascript,${encodeURIComponent(frontMatter)}`
+					);
+					config = frontMatterModule.config;
+				}
+
+				const templateName = (
+					relativePath ? path.join(relativePath, item) : item
+				).replace(".astro", "");
+
+				// Check if getStaticPaths exists and generate multiple pages if so
+				if (
+					exprts.getStaticPaths &&
+					typeof exprts.getStaticPaths === "function"
+				) {
+					const staticPaths = await exprts.getStaticPaths();
+
+					for (const pathData of staticPaths) {
+						let pageName = templateName;
+						for (const key in pathData.params) {
+							pageName = pageName.replace(`[${key}]`, pathData.params[key]);
+						}
+
+						results.push({
+							name: pageName,
+							config: config,
+							params: pathData.params,
+						});
 					}
-
+				} else {
 					results.push({
-						name: pageName,
-						config: exprts.config,
-						exports: exprts,
-						params: pathData.params,
+						name: templateName,
+						config: config,
 					});
 				}
-			} else {
-				results.push({
-					name: templateName,
-					config: exprts.config,
-					exports: exprts,
-				});
 			}
+		} catch (err) {
+			console.error(err);
+			failed = true;
 		}
 	}
 
@@ -68,6 +88,10 @@ async function findTemplates(
 }
 
 const templates = await findTemplates("src/pages", "", 0, 2);
+
+if (failed) {
+	throw new Error("Failed to build pages");
+}
 
 const LinkIcon = `
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" style="margin-bottom:-2px;" viewBox="0 0 15 15">
@@ -205,13 +229,13 @@ const LinkIcon = `
         background-image: linear-gradient(#eee 1px, transparent 1px), linear-gradient(to right, #eee 1px, #fff 1px);
         background-size: 20px 20px;
       }
-/*
+
       @media (prefers-color-scheme: dark) {
         body {
           background-color: hsl(258, 7%, 10%);
           color: #fff;
         }
-      }*/
+      }
 
       iframe {
         border: none;
@@ -241,6 +265,7 @@ const LinkIcon = `
         display: grid;
         grid-template-rows: auto 1fr;
         justify-content: center;
+        justify-items: center;
         height: 100%;
         margin: 0 20px;
       }
@@ -261,13 +286,13 @@ const LinkIcon = `
         border-right: 1px solid #e0e0e0;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       }
-/*
+
       @media (prefers-color-scheme: dark) {
         .sidebar {
           background-color: hsl(258, 4%, 14%);
           border-right: 1px solid #000000;
         }
-      }*/
+      }
 
       a[href] {
         color: inherit;
@@ -313,7 +338,7 @@ const LinkIcon = `
         transition: none;
         box-shadow: none;
       }
-/*
+
       @media (prefers-color-scheme: dark) {
         button {
           border: 1px solid #4b4b4b;
@@ -322,7 +347,7 @@ const LinkIcon = `
         button:hover {
           background: #3f3f3f;
         }
-      }*/
+      }
     </style>
   </body>
 </html>
