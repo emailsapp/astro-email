@@ -1,7 +1,75 @@
 ---
 import fs from "node:fs";
+import path from "node:path";
 
-const templates = fs.readdirSync("src/pages");
+async function findTemplates(
+	basePath: string,
+	relativePath: string = "",
+	currentDepth: number = 0,
+	maxDepth: number = 2,
+): Promise<any[]> {
+	if (currentDepth > maxDepth) {
+		return [];
+	}
+
+	const fullPath = path.resolve(basePath, relativePath);
+	const items = fs.readdirSync(fullPath);
+	const results: any[] = [];
+
+	for (const item of items) {
+		const itemPath = path.resolve(fullPath, item);
+		const stat = fs.statSync(itemPath);
+
+		if (stat.isDirectory()) {
+			const subResults = await findTemplates(
+				basePath,
+				path.join(relativePath, item),
+				currentDepth + 1,
+				maxDepth,
+			);
+			results.push(...subResults);
+		} else {
+			const exprts = await import(itemPath);
+			const templateName = (
+				relativePath ? path.join(relativePath, item) : item
+			).replace(".astro", "");
+
+			// Check if getStaticPaths exists and generate multiple pages if so
+			if (
+				exprts.getStaticPaths &&
+				typeof exprts.getStaticPaths === "function"
+			) {
+				const staticPaths = await exprts.getStaticPaths();
+
+				console.log(staticPaths);
+
+				for (const pathData of staticPaths) {
+					let pageName = templateName;
+					for (const key in pathData.params) {
+						pageName = pageName.replace(`[${key}]`, pathData.params[key]);
+					}
+
+					results.push({
+						name: pageName,
+						config: exprts.config,
+						exports: exprts,
+						params: pathData.params,
+					});
+				}
+			} else {
+				results.push({
+					name: templateName,
+					config: exprts.config,
+					exports: exprts,
+				});
+			}
+		}
+	}
+
+	return results;
+}
+
+const templates = await findTemplates("src/pages", "", 0, 2);
 
 const LinkIcon = `
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" style="margin-bottom:-2px;" viewBox="0 0 15 15">
@@ -43,14 +111,16 @@ const LinkIcon = `
         <h1>Templates</h1>
         {
           templates.map((template) => {
-            const path = template.replace(".astro", "");
+            const path = template?.name.replace(".astro", "");
             return (
-              <button onclick={`openTemplate("${path}")`}>
-                <span>{path}</span>
+              <div class="button">
+                <a href={`#${path}`}>
+                  <span>{path}</span>
+                </a>
                 <a target="_blank" href={path} class="template-link">
                   <span set:html={LinkIcon} />
                 </a>
-              </button>
+              </div>
             );
           })
         }
@@ -65,32 +135,46 @@ const LinkIcon = `
           if (!dataString) throw new Error("No data found");
 
           const data = JSON.parse(dataString);
+          console.debug("data", data);
+
           const iframe = document.querySelector("iframe");
           if (!iframe) throw new Error("No iframe found");
 
-          function updateWidth() {
-            const width = iframe?.offsetWidth || 0;
-            document.querySelector("#display-width").innerHTML = `${width}px`;
+          function updateWidth(width?: number) {
+            width = width || iframe?.offsetWidth || 0;
+            const display = document.querySelector("#display-width");
+            if(display) {
+              display.innerHTML = `${width}px`;
+            }
           }
 
-          window.addEventListener("resize", updateWidth);
+          window.addEventListener("resize", () => updateWidth());
           updateWidth();
+
+          function showTemplate(name: string) {
+            if(!iframe) return;
+
+            const config = data.pages.find((temp: { name: string }) => {
+              return temp.name === `${name}`;
+            })?.config;
+
+            console.debug(name, config)
+
+            updateWidth(config.width);
+
+            iframe.src = `/${name}`;
+          }
 
           const template = location.hash.substring(1);
           if (template) {
-            iframe.src = `/${template}`;
+            showTemplate(template)
           } else {
-            const first = data.pages[0].replace(".astro", "");
-            iframe.src = `/${first}`;
+            const first = data.pages[0]?.name.replace(".astro", "");
+            showTemplate(first)
           }
 
-          window.openTemplate = (template) => {
-            location.hash = `${template}`;
-          };
-
           window.addEventListener("hashchange", () => {
-            const template = location.hash.substring(1);
-            iframe.src = `/${template}`;
+            showTemplate(location.hash.substring(1));
           });
         </script>
       </div>
@@ -106,12 +190,18 @@ const LinkIcon = `
         font-size: 1rem;
       }
 
+      body {
+        background-color: #e5e5f7;
+        background-image: linear-gradient(#eee 1px, transparent 1px), linear-gradient(to right, #eee 1px, #fff 1px);
+        background-size: 20px 20px;
+      }
+/*
       @media (prefers-color-scheme: dark) {
         body {
           background-color: hsl(258, 7%, 10%);
           color: #fff;
         }
-      }
+      }*/
 
       iframe {
         border: none;
@@ -121,8 +211,10 @@ const LinkIcon = `
       }
 
       h1 {
-        font-size: 1rem;
-        font-weight: 600;
+        opacity: 0.65;
+        font-size: 0.65rem;
+        font-weight: normal;
+        text-transform: uppercase;
         margin: 0 0 1rem 0;
       }
 
@@ -153,30 +245,33 @@ const LinkIcon = `
       .sidebar {
         margin: 8px;
         border-radius: 8px;
-        background: #eee;
+        background: #fff;
         padding: 1rem 0.75rem;
         box-sizing: border-box;
         border-right: 1px solid #e0e0e0;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       }
-
+/*
       @media (prefers-color-scheme: dark) {
         .sidebar {
           background-color: hsl(258, 4%, 14%);
           border-right: 1px solid #000000;
         }
-      }
+      }*/
 
       a[href] {
         color: inherit;
         text-decoration: none;
       }
 
+      .button,
       button {
+        display: inline-block;
+        box-sizing: border-box;
         appearance: none;
         width: 100%;
         background: transparent;
         color: inherit;
-        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -184,14 +279,12 @@ const LinkIcon = `
         border: 1px solid #ddd;
         border-radius: 8px;
         margin-bottom: 0.5rem;
-        text-transform: capitalize;
         transition: all 0.2s;
       }
 
       .template-link {
         padding: 8px 10px;
         border-radius: 8px;
-        text-transform: capitalize;
         transition: all 0.2s;
       }
 
@@ -199,16 +292,18 @@ const LinkIcon = `
         background: #8282823e;
       }
 
+      .button:hover,
       button:hover {
         background: #fff;
         box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.04);
       }
 
+      .button:active,
       button:active {
         transition: none;
         box-shadow: none;
       }
-
+/*
       @media (prefers-color-scheme: dark) {
         button {
           border: 1px solid #4b4b4b;
@@ -217,7 +312,7 @@ const LinkIcon = `
         button:hover {
           background: #3f3f3f;
         }
-      }
+      }*/
     </style>
   </body>
 </html>
