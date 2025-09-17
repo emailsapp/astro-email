@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      .banner {
+        display: block;
+        position: relative;
+        font-family: sans-serif;
+        font-weight: normal;
+        overflow: hidden;
+        cursor: pointer;
+        text-decoration: none;
+      }
+    </style>
+
+    <slot name="head" />
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      window.c = {
+        de: {
+          speed: 1,
+          loops: Infinity,
+          steps: [
+            { d: 0.1, c: "STEP-0" },
+            { d: 1, c: "STEP-1" },
+            { d: 2, c: "STEP-2" },
+            { d: 1, c: "STEP-3" },
+            { d: 1, c: "STEP-4" },
+            { d: 2, c: "STEP-5" },
+            { d: 1, c: "STEP-6" },
+            { d: 2, c: "STEP-7" },
+          ],
+          delayEndScreen: 5,
+          durationRestart: 0,
+        },
+        fr: {
+          speed: 1,
+          loops: Infinity,
+          steps: [
+            { d: 0.1, c: "STEP-0" },
+            { d: 1, c: "STEP-1" },
+            { d: 2, c: "STEP-2" },
+            { d: 2, c: "STEP-5" },
+            { d: 1, c: "STEP-6" },
+            { d: 2, c: "STEP-7" },
+          ],
+          delayEndScreen: 5,
+          durationRestart: 0,
+        },
+        nl: {
+          speed: 1,
+          loops: Infinity,
+          steps: [
+            { d: 0.1, c: "STEP-0" },
+            { d: 1, c: "STEP-1" },
+            { d: 2, c: "STEP-2" },
+            { d: 2, c: "STEP-5" },
+            { d: 1, c: "STEP-6" },
+            { d: 2, c: "STEP-7" },
+          ],
+          delayEndScreen: 5,
+          durationRestart: 0,
+        },
+      };
+    </script>
+
+    <a href="#clicktag" class="banner" id="clicktag" target="_blank">
+      <div>
+        Test Banner
+      </div>
+
+      <slot />
+    </a>
+
+    <script is:inline type="application/javascript">
+      var getUriParams = (() => {
+        var query_string = {};
+        var query = window.location.search.substring(1);
+        var parmsArray = query.split("&");
+        if (parmsArray.length <= 0) return query_string;
+        for (var i = 0; i < parmsArray.length; i++) {
+          var pair = parmsArray[i].split("=");
+          var val = decodeURIComponent(pair[1]);
+          if (val !== "" && pair[0] !== "") query_string[pair[0]] = val;
+        }
+        return query_string;
+      })();
+
+      const clicktag = document.getElementById("clicktag");
+      const href = getUriParams.clicktag || getUriParams.clicktag1;
+      const target = getUriParams.target || getUriParams.target1;
+
+      if (clicktag && href) {
+        clicktag.setAttribute("href", href);
+      }
+
+      if (clicktag && target) {
+        clicktag.setAttribute("target", target);
+      }
+    </script>
+  </body>
+</html>
