@@ -145,12 +145,13 @@ const LinkIcon = `
       <div class="sidebar">
         <h1>Templates</h1>
         {
-          templates.map((template) => {
+          templates.map((template, index) => {
             const path = template?.name.replace(".astro", "");
             return (
-              <div class="button">
+              <div class="button" data-template={path}>
                 <a href={`#${path}`}>
-                  <span>{path}</span>
+                  <span class="template-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span class="template-name">{path}</span>
                 </a>
                 <a target="_blank" href={path} class="template-link">
                   <span set:html={LinkIcon} />
@@ -213,6 +214,16 @@ const LinkIcon = `
             updateFormat(name);
 
             iframe.src = `/${name}`;
+
+            // Update active state
+            document.querySelectorAll('.button').forEach(button => {
+              button.classList.remove('active');
+            });
+
+            const activeButton = document.querySelector(`[data-template="${name}"]`);
+            if (activeButton) {
+              activeButton.classList.add('active');
+            }
 
             window.removeEventListener("resize", resizeListener);
 
@@ -295,7 +306,7 @@ const LinkIcon = `
       .layout {
         height: 100%;
         display: grid;
-        grid-template-columns: 250px 1fr;
+        grid-template-columns: 280px 1fr;
         grid-template-rows: 1fr;
       }
 
@@ -332,14 +343,46 @@ const LinkIcon = `
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 4px 6px 4px 12px;
+        padding: 0px 4px 0px 6px;
         border: 1px solid #ddd;
         border-radius: 8px;
         margin-bottom: 0.5rem;
         transition: all 0.2s;
       }
 
+      .button a[href^="#"] {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-height: 2rem;
+      }
+
+      .template-number {
+        font-size: 0.75rem;
+        opacity: 0.6;
+        font-weight: 600;
+        min-width: 1.5rem;
+        text-align: center;
+      }
+
+      .template-name {
+        flex: 1;
+        font-size: 0.8rem;
+      }
+
+      .button.active {
+        background: #007bff;
+        color: #fff;
+        border-color: #007bff;
+      }
+
+      .button.active .template-number {
+        opacity: 0.9;
+      }
+
       .template-link {
+        font-size: 0.65rem;
         padding: 8px 10px;
         border-radius: 8px;
         transition: all 0.2s;
@@ -351,7 +394,6 @@ const LinkIcon = `
 
       .button:hover,
       button:hover {
-        background: #fff;
         box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.04);
       }
 
@@ -368,6 +410,11 @@ const LinkIcon = `
 
         button:hover {
           background: #3f3f3f;
+        }
+
+        .button.active {
+          background: #0066cc;
+          border-color: #0066cc;
         }
       }
     </style>
