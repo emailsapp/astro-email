@@ -178,9 +178,9 @@ const LinkIcon = `
           let fixedWidth = undefined;
           let fixedHeight = undefined;
 
-          function updateFormat(width?: number, height?: number) {
-            fixedWidth = width;
-            fixedHeight = height;
+          function updateFormat() {
+            fixedWidth = config.width;
+            fixedHeight = config.height;
             width = fixedWidth || iframe?.offsetWidth || 0;
             height = fixedHeight || iframe?.offsetHeight || 0;
 
@@ -207,7 +207,7 @@ const LinkIcon = `
 
             console.debug(name, config)
 
-            updateFormat(config.width, config.height);
+            updateFormat();
 
             iframe.src = `/${name}`;
           }
