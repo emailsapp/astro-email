@@ -178,11 +178,15 @@ const LinkIcon = `
           let fixedWidth = undefined;
           let fixedHeight = undefined;
 
-          function updateFormat() {
+          const updateFormat = (name?: string) => {
+            const config = data.pages.find((temp: { name: string }) => {
+              return temp.name === `${name}`;
+            })?.config;
+
             fixedWidth = config.width;
             fixedHeight = config.height;
-            width = fixedWidth || iframe?.offsetWidth || 0;
-            height = fixedHeight || iframe?.offsetHeight || 0;
+            const width = fixedWidth || iframe?.offsetWidth || 0;
+            const height = fixedHeight || iframe?.offsetHeight || 0;
 
             const display = document.querySelector("#display-width");
             if(display) {
@@ -195,8 +199,7 @@ const LinkIcon = `
             }
           }
 
-          window.addEventListener("resize", () => updateFormat());
-          updateFormat();
+          let resizeListener: EventListener;
 
           function showTemplate(name: string) {
             if(!iframe) return;
@@ -207,9 +210,15 @@ const LinkIcon = `
 
             console.debug(name, config)
 
-            updateFormat();
+            updateFormat(name);
 
             iframe.src = `/${name}`;
+
+            window.removeEventListener("resize", resizeListener);
+
+            resizeListener = () => updateFormat(name);
+
+            window.addEventListener("resize", resizeListener);
           }
 
           const template = location.hash.substring(1);
