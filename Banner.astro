@@ -1,3 +1,7 @@
+---
+const props = Astro.props;
+---
+
 <html lang="de">
   <head>
     <meta charset="utf-8" />
@@ -6,6 +10,8 @@
     <style>
       body {
         margin: 0;
+        width: 100%;
+        height: 100%;
       }
       .banner {
         display: block;
@@ -22,56 +28,7 @@
   </head>
 
   <body>
-    <script type="text/javascript">
-      window.c = {
-        de: {
-          speed: 1,
-          loops: Infinity,
-          steps: [
-            { d: 0.1, c: "STEP-0" },
-            { d: 1, c: "STEP-1" },
-            { d: 2, c: "STEP-2" },
-            { d: 1, c: "STEP-3" },
-            { d: 1, c: "STEP-4" },
-            { d: 2, c: "STEP-5" },
-            { d: 1, c: "STEP-6" },
-            { d: 2, c: "STEP-7" },
-          ],
-          delayEndScreen: 5,
-          durationRestart: 0,
-        },
-        fr: {
-          speed: 1,
-          loops: Infinity,
-          steps: [
-            { d: 0.1, c: "STEP-0" },
-            { d: 1, c: "STEP-1" },
-            { d: 2, c: "STEP-2" },
-            { d: 2, c: "STEP-5" },
-            { d: 1, c: "STEP-6" },
-            { d: 2, c: "STEP-7" },
-          ],
-          delayEndScreen: 5,
-          durationRestart: 0,
-        },
-        nl: {
-          speed: 1,
-          loops: Infinity,
-          steps: [
-            { d: 0.1, c: "STEP-0" },
-            { d: 1, c: "STEP-1" },
-            { d: 2, c: "STEP-2" },
-            { d: 2, c: "STEP-5" },
-            { d: 1, c: "STEP-6" },
-            { d: 2, c: "STEP-7" },
-          ],
-          delayEndScreen: 5,
-          durationRestart: 0,
-        },
-      };
-    </script>
-
-    <a href="#clicktag" class="banner" id="clicktag" target="_blank">
+    <a href="#clicktag" class={[props.class, 'banner'].join(" ")} id="clicktag" target="_blank">
       <slot />
     </a>
 
