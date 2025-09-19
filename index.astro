@@ -1,6 +1,7 @@
 ---
 import fs from "node:fs";
 import path from "node:path";
+import archiver from "archiver";
 
 let failed = false;
 
@@ -106,21 +107,49 @@ if (failed) {
 	throw new Error("Failed to build pages");
 }
 
-const LinkIcon = `
-  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" style="margin-bottom:-2px;" viewBox="0 0 15 15">
-    <defs>
-      <clipPath id="clip-path">
-        <rect id="Rectangle_1687" data-name="Rectangle 1687" width="15" height="15" transform="translate(11726 152)" fill="none"/>
-      </clipPath>
-    </defs>
-    <g id="Mask_Group_3" data-name="Mask Group 3" transform="translate(-11726 -152)" clip-path="url(#clip-path)">
-      <g id="Group_422" data-name="Group 422" fill="currentColor">
-        <path id="Path_4182" data-name="Path 4182" d="M14.6,14H7.4A2.4,2.4,0,0,1,5,11.6V4.4A2.4,2.4,0,0,1,7.4,2h2.8V3.2H7.4A1.2,1.2,0,0,0,6.2,4.4v7.2a1.2,1.2,0,0,0,1.2,1.2h7.2a1.2,1.2,0,0,0,1.2-1.2V9H17v2.6A2.4,2.4,0,0,1,14.6,14Z" transform="translate(11722 152)"/>
-        <path id="Path_4181" data-name="Path 4181" d="M3.385,9.591V1.927L.963,4.349a.564.564,0,0,1-.8-.8L3.54.176a.564.564,0,0,1,.684-.1h0l.01.006,0,0,.007,0,.006,0,0,0L4.264.1h0a.567.567,0,0,1,.083.069L7.733,3.55a.564.564,0,0,1-.8.8L4.513,1.926V9.591a.564.564,0,1,1-1.128,0Z" transform="translate(11737.298 150.117) rotate(45)"/>
-      </g>
-    </g>
-  </svg>
-`;
+// Generate assets zip at build time
+let assetsZipPath = null;
+const distPath = path.resolve("dist");
+
+async function createAssetsZip() {
+	if (!fs.existsSync(distPath)) {
+		console.log("No dist directory found, skipping assets zip creation");
+		return null;
+	}
+
+	const zipPath = path.resolve("public", "assets.zip");
+
+	// Ensure public directory exists
+	if (!fs.existsSync("public")) {
+		fs.mkdirSync("public", { recursive: true });
+	}
+
+	return new Promise((resolve, reject) => {
+		const output = fs.createWriteStream(zipPath);
+		const archive = archiver("zip", {
+			zlib: { level: 9 },
+		});
+
+		output.on("close", () => {
+			console.log(`Assets zip created: ${archive.pointer()} total bytes`);
+			resolve(zipPath);
+		});
+
+		archive.on("error", (err) => {
+			reject(err);
+		});
+
+		archive.pipe(output);
+		archive.directory(distPath, false);
+		archive.finalize();
+	});
+}
+
+try {
+	assetsZipPath = await createAssetsZip();
+} catch (err) {
+	console.warn("Failed to create assets zip:", err.message);
+}
 ---
 
 <html>
@@ -143,7 +172,12 @@ const LinkIcon = `
   <body>
     <div class="layout">
       <div class="sidebar">
-        <h1>Templates</h1>
+        <div class="sidebar-header">
+          <h1>Templates</h1>
+          <button id="download-assets" class="download-button" data-has-assets={assetsZipPath ? "true" : "false"}>
+            Download All Assets
+          </button>
+        </div>
         {
           templates.map((template, index) => {
             const path = template?.name.replace(".astro", "");
@@ -154,7 +188,19 @@ const LinkIcon = `
                   <span class="template-name">{path}</span>
                 </a>
                 <a target="_blank" href={path} class="template-link">
-                  <span set:html={LinkIcon} />
+                  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" style="margin-bottom:-2px;" viewBox="0 0 15 15">
+                    <defs>
+                      <clipPath id="clip-path">
+                        <rect id="Rectangle_1687" data-name="Rectangle 1687" width="15" height="15" transform="translate(11726 152)" fill="none"/>
+                      </clipPath>
+                    </defs>
+                    <g id="Mask_Group_3" data-name="Mask Group 3" transform="translate(-11726 -152)" clip-path="url(#clip-path)">
+                      <g id="Group_422" data-name="Group 422" fill="currentColor">
+                        <path id="Path_4182" data-name="Path 4182" d="M14.6,14H7.4A2.4,2.4,0,0,1,5,11.6V4.4A2.4,2.4,0,0,1,7.4,2h2.8V3.2H7.4A1.2,1.2,0,0,0,6.2,4.4v7.2a1.2,1.2,0,0,0,1.2,1.2h7.2a1.2,1.2,0,0,0,1.2-1.2V9H17v2.6A2.4,2.4,0,0,1,14.6,14Z" transform="translate(11722 152)"/>
+                        <path id="Path_4181" data-name="Path 4181" d="M3.385,9.591V1.927L.963,4.349a.564.564,0,0,1-.8-.8L3.54.176a.564.564,0,0,1,.684-.1h0l.01.006,0,0,.007,0,.006,0,0,0L4.264.1h0a.567.567,0,0,1,.083.069L7.733,3.55a.564.564,0,0,1-.8.8L4.513,1.926V9.591a.564.564,0,1,1-1.128,0Z" transform="translate(11737.298 150.117) rotate(45)"/>
+                      </g>
+                    </g>
+                  </svg>
                 </a>
               </div>
             );
@@ -172,6 +218,47 @@ const LinkIcon = `
 
           const data = JSON.parse(dataString);
           console.debug("data", data);
+
+          // Download assets functionality
+          const downloadButton = document.querySelector("#download-assets");
+          const hasAssets = downloadButton && downloadButton.getAttribute("data-has-assets") === "true";
+
+          if (downloadButton) {
+            if (!hasAssets) {
+              downloadButton.disabled = true;
+              downloadButton.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 12 12" style="color: #6c757d;">
+                  <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+                  <path d="M4.5 4.5l3 3M7.5 4.5l-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                No Assets Built
+              `;
+              downloadButton.title = "Run 'npm run build' to generate downloadable assets";
+            } else {
+              downloadButton.addEventListener("click", () => {
+                // Simple direct download of pre-built zip
+                const link = document.createElement("a");
+                link.href = "/assets.zip";
+                link.download = "assets.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Show success feedback
+                const originalText = downloadButton.innerHTML;
+                downloadButton.innerHTML = `
+                  <svg width="12" height="12" viewBox="0 0 12 12" style="color: #22c55e;">
+                    <path d="M2 6l2.5 2.5L9 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Downloaded!
+                `;
+
+                setTimeout(() => {
+                  downloadButton.innerHTML = originalText;
+                }, 1500);
+              });
+            }
+          }
 
           const iframe = document.querySelector("iframe");
           if (!iframe) throw new Error("No iframe found");
@@ -191,7 +278,7 @@ const LinkIcon = `
 
             const display = document.querySelector("#display-width");
             if(display) {
-              display.innerHTML = `${width}px x ${height}px`;
+              display.innerHTML = `${width}x${height}px`;
             }
 
             if(iframe) {
@@ -282,7 +369,7 @@ const LinkIcon = `
         font-size: 0.65rem;
         font-weight: normal;
         text-transform: uppercase;
-        margin: 0 0 1rem 0;
+        margin: 0;
       }
 
       .preview-header {
@@ -318,6 +405,52 @@ const LinkIcon = `
         box-sizing: border-box;
         border-right: 1px solid #e0e0e0;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .download-button {
+        appearance: none;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 2.25rem;
+      }
+
+      .download-button:hover:not(:disabled) {
+        background: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+      }
+
+      .download-button:disabled {
+        opacity: 0.8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        background: #6c757d;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       @media (prefers-color-scheme: dark) {
@@ -415,6 +548,14 @@ const LinkIcon = `
         .button.active {
           background: #0066cc;
           border-color: #0066cc;
+        }
+
+        .download-button:hover:not(:disabled) {
+          background: #0056b3;
+        }
+
+        .download-button:disabled {
+          background: #6c757d;
         }
       }
     </style>
