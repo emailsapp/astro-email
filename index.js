@@ -115,22 +115,23 @@ async function archiveAssets() {
       return null;
     }
 
-    const zipPath = path.resolve("dist", "assets.zip");
-
-    // Ensure dist directory exists
-    if (!fs.existsSync("dist")) {
-      fs.mkdirSync("dist", { recursive: true });
-    }
+    const tmpZipPath = path.resolve("assets.zip");
 
     return new Promise((resolve, reject) => {
-      const output = fs.createWriteStream(zipPath);
+      const output = fs.createWriteStream(tmpZipPath);
       const archive = archiver("zip", {
         zlib: { level: 9 },
       });
 
       output.on("close", () => {
         console.log(`Assets zip created: ${archive.pointer()} total bytes`);
-        resolve(zipPath);
+
+        // Move assets.zip to dist/
+        const finalZipPath = path.resolve(distPath, "assets.zip");
+        fs.renameSync(tmpZipPath, finalZipPath);
+        console.log(`Assets zip moved to: ${finalZipPath}`);
+
+        resolve(tmpZipPath);
       });
 
       archive.on("error", (err) => {
