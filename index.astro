@@ -1,7 +1,6 @@
 ---
 import fs from "node:fs";
 import path from "node:path";
-import archiver from "archiver";
 
 let failed = false;
 
@@ -105,50 +104,6 @@ const templates = await findTemplates("src/pages", "", 0, 2);
 
 if (failed) {
 	throw new Error("Failed to build pages");
-}
-
-// Generate assets zip at build time
-let assetsZipPath = null;
-const distPath = path.resolve("dist");
-
-async function createAssetsZip() {
-	if (!fs.existsSync(distPath)) {
-		console.log("No dist directory found, skipping assets zip creation");
-		return null;
-	}
-
-	const zipPath = path.resolve("public", "assets.zip");
-
-	// Ensure public directory exists
-	if (!fs.existsSync("public")) {
-		fs.mkdirSync("public", { recursive: true });
-	}
-
-	return new Promise((resolve, reject) => {
-		const output = fs.createWriteStream(zipPath);
-		const archive = archiver("zip", {
-			zlib: { level: 9 },
-		});
-
-		output.on("close", () => {
-			console.log(`Assets zip created: ${archive.pointer()} total bytes`);
-			resolve(zipPath);
-		});
-
-		archive.on("error", (err) => {
-			reject(err);
-		});
-
-		archive.pipe(output);
-		archive.directory(distPath, false);
-		archive.finalize();
-	});
-}
-
-try {
-	assetsZipPath = await createAssetsZip();
-} catch (err) {
-	console.warn("Failed to create assets zip:", err.message);
 }
 ---
 

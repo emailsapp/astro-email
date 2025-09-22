@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import * as vite from "vite";
 import child_process from "node:child_process";
+import archiver from "archiver";
 
 /**
  * @param {object} options
@@ -48,7 +49,7 @@ export default function email(options) {
 
         addDevToolbarApp("astro-email/toolbar.js");
       },
-      "astro:build:done": ({ dir, pages }) => {
+      "astro:build:done": async ({ dir, pages }) => {
         if (options.filename) {
           for (const page of pages) {
             const pathname = page.pathname || "index";
@@ -67,6 +68,8 @@ export default function email(options) {
             );
           }
         }
+
+        await archiveAssets();
       },
       "astro:server:setup": ({ server }) => {
         server.ws.on("astro-dev-toolbar:astro-email:toggled", (data) => {
@@ -100,4 +103,45 @@ function optionsPlugin(experimentalReactChildren) {
       }
     },
   };
+}
+
+async function archiveAssets() {
+  // Generate assets zip at build time
+  const distPath = path.resolve("dist");
+
+  async function createAssetsZip() {
+    if (!fs.existsSync(distPath)) {
+      console.log("No dist directory found, skipping assets zip creation");
+      return null;
+    }
+
+    const zipPath = path.resolve("public", "assets.zip");
+
+    // Ensure public directory exists
+    if (!fs.existsSync("public")) {
+      fs.mkdirSync("public", { recursive: true });
+    }
+
+    return new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver("zip", {
+        zlib: { level: 9 },
+      });
+
+      output.on("close", () => {
+        console.log(`Assets zip created: ${archive.pointer()} total bytes`);
+        resolve(zipPath);
+      });
+
+      archive.on("error", (err) => {
+        reject(err);
+      });
+
+      archive.pipe(output);
+      archive.directory(distPath, false);
+      archive.finalize();
+    });
+  }
+
+  return await createAssetsZip();
 }
