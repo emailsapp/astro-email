@@ -115,11 +115,11 @@ async function archiveAssets() {
       return null;
     }
 
-    const zipPath = path.resolve("public", "assets.zip");
+    const zipPath = path.resolve("dist", "assets.zip");
 
-    // Ensure public directory exists
-    if (!fs.existsSync("public")) {
-      fs.mkdirSync("public", { recursive: true });
+    // Ensure dist directory exists
+    if (!fs.existsSync("dist")) {
+      fs.mkdirSync("dist", { recursive: true });
     }
 
     return new Promise((resolve, reject) => {
