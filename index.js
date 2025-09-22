@@ -32,7 +32,7 @@ export default function email(options) {
               optionsPlugin(false), // required for @astrojs/react/server.js to work.
             ],
             build: {
-              assetsInlineLimit: 1024 * 10, // inline all assets
+              assetsInlineLimit: 1024 * 20, // inline all assets
             },
           },
           compressHTML: false,
