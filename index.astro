@@ -32,7 +32,7 @@ async function findTemplates(
 				);
 				results.push(...subResults);
 			} else {
-				const astroPageRaw = await import(`${itemPath}?raw`);
+				const astroPageRaw = { default: fs.readFileSync(itemPath, "utf-8") };
 				const frontMatterMatch = astroPageRaw.default?.match(
 					/^---\s*([\s\S]*?)\s*---/,
 				);
