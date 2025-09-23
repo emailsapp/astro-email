@@ -27,12 +27,13 @@ const props = Astro.props;
   </head>
 
   <body>
-    <a href="#clicktag" class={['banner', props.class].join(" ")} id="clicktag" target="_blank">
+    <a href="javascript:window.open(window.clickTag)" class={['banner', props.class].join(" ")} id="clicktag" target="_blank">
       <slot />
     </a>
 
     <script is:inline type="application/javascript">
-      var getUriParams = (() => {
+      var clickTag = "";
+      var getUriParams = (function () {
         var query_string = {};
         var query = window.location.search.substring(1);
         var parmsArray = query.split("&");
@@ -40,21 +41,26 @@ const props = Astro.props;
         for (var i = 0; i < parmsArray.length; i++) {
           var pair = parmsArray[i].split("=");
           var val = decodeURIComponent(pair[1]);
-          if (val !== "" && pair[0] !== "") query_string[pair[0]] = val;
+          if (val != "" && pair[0] != "") query_string[pair[0]] = val;
         }
         return query_string;
       })();
 
-      const clicktag = document.getElementById("clicktag");
+      const element = document.getElementById("clicktag");
       const href = getUriParams.clicktag || getUriParams.clicktag1;
       const target = getUriParams.target || getUriParams.target1;
 
-      if (clicktag && href) {
-        clicktag.setAttribute("href", href);
+      // google
+      if (href) {
+        window.clickTag = href;
       }
 
-      if (clicktag && target) {
-        clicktag.setAttribute("target", target);
+      // default
+      if (element && href) {
+        element.setAttribute("href", href);
+      }
+      if (element && target) {
+        element.setAttribute("target", target);
       }
     </script>
   </body>
